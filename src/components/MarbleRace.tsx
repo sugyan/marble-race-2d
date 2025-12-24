@@ -184,7 +184,6 @@ const MarbleRace = () => {
       case 'grid': // グリッド（ランダムオフセット付き）
         {
           const cols = 4;
-          const rows = Math.ceil(numPlatforms / cols);
           const spacingX = width * 0.22;
           const spacingY = height * 0.2;
           const startX = width * 0.2;
@@ -348,7 +347,7 @@ const MarbleRace = () => {
     Matter.Engine.clear(engineRef.current);
 
     // コースと障害物を作成
-    const { movingObstacles, width: courseWidth, height: courseHeight, goalLine, platforms } = createCourse(engineRef.current, width, height);
+    const { movingObstacles, goalLine, platforms } = createCourse(engineRef.current, width, height);
 
     // ボールを作成
     const balls = createBalls(engineRef.current, 20, width, height);
@@ -400,7 +399,6 @@ const MarbleRace = () => {
           case 'figure8': // 8の字運動
             {
               const s = Math.sin(t);
-              const c = Math.cos(t);
               Matter.Body.setPosition(body, {
                 x: baseX + s * radiusX,
                 y: baseY + Math.sin(2 * t) * radiusY
