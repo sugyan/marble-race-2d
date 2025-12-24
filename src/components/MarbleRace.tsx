@@ -312,18 +312,23 @@ const MarbleRace = () => {
       const x = startX + Math.random() * startAreaWidth;
       const y = startY + Math.random() * startAreaHeight;
 
+      const color = COLORS[i % COLORS.length];
+
       const body = Bodies.circle(x, y, ballRadius, {
         restitution: 0.98,       // 弾性をかなり高く（ほとんどエネルギーを失わない）
         friction: 0.001,         // 摩擦を極限まで低く（滑りやすい）
         frictionStatic: 0,       // 静止摩擦をゼロに（止まりにくい）
         frictionAir: 0.0005,     // 空気抵抗をさらに低く
         density: 0.001,
+        render: {
+          fillStyle: color       // ビビッドカラーを設定
+        }
       });
 
       balls.push({
         id: i,
         body,
-        color: COLORS[i % COLORS.length],
+        color: color,
       });
 
       World.add(engine.world, body);
