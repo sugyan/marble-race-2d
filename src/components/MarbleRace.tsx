@@ -22,11 +22,8 @@ const MarbleRace = () => {
 
   const [ranking, setRanking] = useState<Ball[]>([]);
 
-  const createCourse = (engine: Matter.Engine) => {
+  const createCourse = (engine: Matter.Engine, width: number, height: number) => {
     const { World, Bodies } = Matter;
-
-    const width = 800;
-    const height = 1000;
 
     // 壁（摩擦を低く設定）
     const walls = [
@@ -54,33 +51,33 @@ const MarbleRace = () => {
       }
     });
 
-    // プラットフォーム（階段状の障害物、摩擦を低く）
+    // プラットフォーム（階段状の障害物、摩擦を低く）相対位置で配置
     const platforms = [
-      Bodies.rectangle(200, 200, 200, 20, {
+      Bodies.rectangle(width * 0.25, height * 0.2, width * 0.25, 20, {
         isStatic: true,
         angle: 0.1,
         friction: 0.001,
         restitution: 0.8
       }),
-      Bodies.rectangle(600, 350, 200, 20, {
+      Bodies.rectangle(width * 0.75, height * 0.35, width * 0.25, 20, {
         isStatic: true,
         angle: -0.1,
         friction: 0.001,
         restitution: 0.8
       }),
-      Bodies.rectangle(300, 500, 200, 20, {
+      Bodies.rectangle(width * 0.375, height * 0.5, width * 0.25, 20, {
         isStatic: true,
         angle: 0.15,
         friction: 0.001,
         restitution: 0.8
       }),
-      Bodies.rectangle(550, 650, 200, 20, {
+      Bodies.rectangle(width * 0.6875, height * 0.65, width * 0.25, 20, {
         isStatic: true,
         angle: -0.15,
         friction: 0.001,
         restitution: 0.8
       }),
-      Bodies.rectangle(350, 800, 250, 20, {
+      Bodies.rectangle(width * 0.4375, height * 0.8, width * 0.3125, 20, {
         isStatic: true,
         angle: 0.1,
         friction: 0.001,
@@ -89,7 +86,7 @@ const MarbleRace = () => {
     ];
 
     // 動く障害物
-    const movingPlatform = Bodies.rectangle(400, 400, 150, 20, {
+    const movingPlatform = Bodies.rectangle(width * 0.5, height * 0.4, width * 0.1875, 20, {
       isStatic: true,
       label: 'moving',
       friction: 0.001,
@@ -101,21 +98,22 @@ const MarbleRace = () => {
     return { movingPlatform };
   };
 
-  const createBalls = (engine: Matter.Engine, count: number) => {
+  const createBalls = (engine: Matter.Engine, count: number, width: number, height: number) => {
     const { World, Bodies } = Matter;
     const balls: Ball[] = [];
 
-    const startY = 50;
-    const spacing = 40;
+    const ballRadius = Math.min(width, height) * 0.015; // 画面サイズに応じたボールサイズ
+    const startY = height * 0.05;
+    const spacing = ballRadius * 2.5;
     const ballsPerRow = 5;
 
     for (let i = 0; i < count; i++) {
       const row = Math.floor(i / ballsPerRow);
       const col = i % ballsPerRow;
-      const x = 200 + col * spacing + (row % 2) * 20; // スタッガード配置
+      const x = width * 0.25 + col * spacing + (row % 2) * (spacing * 0.5); // スタッガード配置
       const y = startY + row * spacing;
 
-      const body = Bodies.circle(x, y, 15, {
+      const body = Bodies.circle(x, y, ballRadius, {
         restitution: 0.9,        // 弾性を高く（よく弾む）
         friction: 0.001,         // 摩擦を極限まで低く（滑りやすい）
         frictionStatic: 0,       // 静止摩擦をゼロに（止まりにくい）
@@ -136,27 +134,34 @@ const MarbleRace = () => {
   };
 
   const startRace = () => {
-    if (!engineRef.current) return;
+    if (!engineRef.current || !renderRef.current) return;
+
+    const width = renderRef.current.options.width || 800;
+    const height = renderRef.current.options.height || 1000;
 
     // エンジンとレンダラーをリセット
     Matter.World.clear(engineRef.current.world, false);
     Matter.Engine.clear(engineRef.current);
 
     // コースと障害物を作成
-    const { movingPlatform } = createCourse(engineRef.current);
+    const { movingPlatform } = createCourse(engineRef.current, width, height);
 
     // ボールを作成
-    const balls = createBalls(engineRef.current, 10);
+    const balls = createBalls(engineRef.current, 10, width, height);
     ballsRef.current = balls;
     setRanking([]);
 
     // 動く障害物のアニメーション
     let time = 0;
+    const centerX = width * 0.5;
+    const centerY = height * 0.4;
+    const amplitude = width * 0.1875;
+
     Matter.Events.on(engineRef.current, 'beforeUpdate', () => {
       time += 0.02;
       Matter.Body.setPosition(movingPlatform, {
-        x: 400 + Math.sin(time * 2) * 150,
-        y: 400
+        x: centerX + Math.sin(time * 2) * amplitude,
+        y: centerY
       });
     });
 
@@ -186,6 +191,12 @@ const MarbleRace = () => {
   useEffect(() => {
     if (!canvasRef.current) return;
 
+    // 画面サイズを取得（ランキング表示の幅を考慮）
+    const rankingWidth = 250;
+    const padding = 40;
+    const canvasWidth = window.innerWidth - rankingWidth - padding;
+    const canvasHeight = window.innerHeight - padding;
+
     // Matter.jsのエンジンとレンダラーを作成
     const { Engine, Render, Runner } = Matter;
 
@@ -198,8 +209,8 @@ const MarbleRace = () => {
       element: canvasRef.current,
       engine: engine,
       options: {
-        width: 800,
-        height: 1000,
+        width: canvasWidth,
+        height: canvasHeight,
         wireframes: false,
         background: '#1a1a2e',
       }
@@ -228,11 +239,18 @@ const MarbleRace = () => {
   }, []);
 
   return (
-    <div style={{ display: 'flex', gap: '20px', padding: '20px' }}>
+    <div style={{
+      display: 'flex',
+      gap: '20px',
+      width: '100vw',
+      height: '100vh',
+      padding: '20px',
+      boxSizing: 'border-box'
+    }}>
       <div ref={canvasRef} />
 
-      <div style={{ minWidth: '200px' }}>
-        <h2 style={{ color: 'white', marginTop: 0 }}>Ranking</h2>
+      <div style={{ minWidth: '200px', maxWidth: '250px' }}>
+        <h2 style={{ color: 'white', marginTop: 0, fontSize: '1.5rem' }}>Ranking</h2>
         <div>
           {ranking.map((ball, index) => (
             <div
